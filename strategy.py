@@ -10,7 +10,7 @@ def fetch_data(symbol, period="7d", interval="15m"):
     except:
         return None
 
-def evaluate_signal(df):
+def evaluate_signal(df, symbol="UNKNOWN"):
     if df is None or df.empty or len(df) < 200:
         return None
 
@@ -32,11 +32,12 @@ def evaluate_signal(df):
         return None
 
     return {
-        "symbol": df.name,
+        "symbol": symbol,
         "price": float(latest["Close"]),
         "direction": direction,
         "timestamp": str(latest.name)
     }
+
 
 def autonomous_trading_loop():
     symbols = ["XAUUSD=X", "^DJI", "^NDX", "EURUSD=X", "GBPUSD=X"]
@@ -44,8 +45,8 @@ def autonomous_trading_loop():
     for sym in symbols:
         df = fetch_data(sym)
         if df is not None:
-            df.name = sym
-            signal = evaluate_signal(df)
+            signal = evaluate_signal(df, symbol=sym)
             if signal:
                 all_signals.append(signal)
     return all_signals
+
