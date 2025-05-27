@@ -11,18 +11,29 @@ def fetch_data(symbol, period="7d", interval="15m"):
         return None
 
 def evaluate_signal(df):
-    if df is None or df.empty:
+    if df is None or df.empty or len(df) < 200:
         return None
+
     df['EMA50'] = df['Close'].ewm(span=50).mean()
     df['EMA200'] = df['Close'].ewm(span=200).mean()
+    df = df.dropna()
+
+    if df.empty:
+        return None
+
     latest = df.iloc[-1]
-    if latest['EMA50'] > latest['EMA200']:
-        direction = "Buy"
-    else:
-        direction = "Sell"
+
+    try:
+        ema_50 = float(latest["EMA50"])
+        ema_200 = float(latest["EMA200"])
+        direction = "Buy" if ema_50 > ema_200 else "Sell"
+    except Exception as e:
+        print("Error comparing EMA values:", e)
+        return None
+
     return {
         "symbol": df.name,
-        "price": round(latest["Close"], 2),
+        "price": float(latest["Close"]),
         "direction": direction,
         "timestamp": str(latest.name)
     }
