@@ -100,3 +100,31 @@ def get_metrics(trades):
         "net_pnl": round(net_pnl, 2)
     }
 
+# In strategy.py, below your existing code…
+
+# A simple in‐memory buffer for insight events
+_insights = []
+
+def log_insight(message: str):
+    """Call this whenever you detect something (order block, EMA cross, etc.)."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _insights.append(f"{timestamp} | {message}")
+    # keep only last 50
+    if len(_insights) > 50:
+        _insights.pop(0)
+
+def get_strategy_insights():
+    """Returns the latest insight messages."""
+    return list(_insights)
+
+# Example: integrate logging inside evaluate_signal or other detection points:
+def evaluate_signal(df, symbol):
+    # … your existing indicator/calculation code …
+    # e.g. when you detect a fair value gap:
+    if latest["FVG"]:
+        log_insight(f"{symbol}: Fair Value Gap detected at {latest['Close']:.2f}")
+    # when EMAs cross:
+    if ema_diff > 0 and prev_ema_diff <= 0:
+        log_insight(f"{symbol}: EMA50 crossed above EMA200 (Bullish)")
+    # continue… then return trade dict as before
+    return trade_dict
