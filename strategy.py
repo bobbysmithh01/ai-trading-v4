@@ -99,32 +99,41 @@ def get_metrics(trades):
         "win_rate": win_rate,
         "net_pnl": round(net_pnl, 2)
     }
-
-# In strategy.py, below your existing code…
-
-# A simple in‐memory buffer for insight events
-_insights = []
-
-def log_insight(message: str):
-    """Call this whenever you detect something (order block, EMA cross, etc.)."""
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    _insights.append(f"{timestamp} | {message}")
-    # keep only last 50
-    if len(_insights) > 50:
-        _insights.pop(0)
-
-def get_strategy_insights():
-    """Returns the latest insight messages."""
-    return list(_insights)
-
-# Example: integrate logging inside evaluate_signal or other detection points:
-def evaluate_signal(df, symbol):
-    # … your existing indicator/calculation code …
-    # e.g. when you detect a fair value gap:
-    if latest["FVG"]:
-        log_insight(f"{symbol}: Fair Value Gap detected at {latest['Close']:.2f}")
-    # when EMAs cross:
-    if ema_diff > 0 and prev_ema_diff <= 0:
-        log_insight(f"{symbol}: EMA50 crossed above EMA200 (Bullish)")
-    # continue… then return trade dict as before
-    return trade_dict
+    
+def autonomous_trading_insights():
+    """
+    Return a list of dicts, each containing:
+     - symbol
+     - EMA50, EMA200, RSI
+     - Fib retracement level (if within a threshold)
+     - Supply/Demand zone flag
+     - AI probability score
+     - decision ("Buy"/"Sell"/"Hold")
+    """
+    insights = []
+    for sym in symbols:
+        df = fetch_data(sym)
+        if df is None or df.empty:
+            continue
+        df = calculate_indicators(df)
+        latest = df.iloc[-1]
+        # compute features
+        ema50, ema200, rsi = latest['EMA50'], latest['EMA200'], latest['RSI']
+        # fib_level detection placeholder
+        fib_level = compute_fib_level(df)   # you’d implement this helper
+        supply_zone = in_supply_zone(latest, df)  # another helper
+        # AI probability
+        features = np.array([[ema50-ema200, rsi, int(fib_level==0.618), int(supply_zone)]])
+        prob = model.predict_proba(features)[0,1]  # probability of a positive signal
+        decision = "Buy" if prob > 0.6 and ema50>ema200 else "Sell" if prob > 0.6 else "Hold"
+        insights.append({
+            "symbol": sym,
+            "EMA50": round(ema50,2),
+            "EMA200": round(ema200,2),
+            "RSI": round(rsi,2),
+            "FibLevel": round(fib_level,3),
+            "SupplyZone": supply_zone,
+            "AI_Score": round(prob, 2),
+            "Decision": decision
+        })
+    return insights
