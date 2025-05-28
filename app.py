@@ -76,11 +76,11 @@ if st.session_state.logged_in:
         feedback = st.text_area("Suggest an improvement or feature:")
         if st.button("Submit Feedback"):
             st.success("Feedback received — thank you!")
-elif menu == "Strategy Insights":
-+       st.subheader("Strategy Insights (Real-Time)")
-+       insights = autonomous_trading_insights()  # new function
-+       if insights:
-+           df = pd.DataFrame(insights)
-+           st.dataframe(df)  # shows columns: symbol, EMA50, EMA200, RSI, FibLevel, SupplyZone, AI_Score, Decision
-+       else:
-+           st.info("No insights available yet. Activate the bot to start scanning.")
+elif menu == "Strategy Insights" 
+st.subheader("Strategy Insights (Real-Time)")
+insights = autonomous_trading_insights()  # new function
+if insights:
+df = pd.DataFrame(insights)
+st.dataframe(df)  # shows columns: symbol, EMA50, EMA200, RSI, FibLevel, SupplyZone, AI_Score, Decision
+else:
+st.info("No insights available yet. Activate the bot to start scanning.")
