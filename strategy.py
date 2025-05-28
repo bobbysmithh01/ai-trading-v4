@@ -39,8 +39,10 @@ def compute_fib_level(df):
     return round(retrace, 3)
 
 def in_supply_zone(latest, df):
-    recent_highs = df['High'].rolling(10).max()
-    return bool(latest['Close'] > recent_highs.iloc[-1] * 0.98)
+    recent_highs = df['High'].rolling(10).max().dropna()
+    if recent_highs.empty:
+        return False
+    return latest['Close'] > recent_highs.iloc[-1] * 0.98
 
 def evaluate_signal(df, symbol):
     df = calculate_indicators(df)
