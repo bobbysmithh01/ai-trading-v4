@@ -4,7 +4,7 @@ import numpy as np
 from datetime import datetime
 from sklearn.ensemble import RandomForestClassifier
 
-# Train a basic RandomForest for filtering
+# Train RandomForest filter
 X_train = pd.DataFrame({
     'ema_diff': np.random.randn(500),
     'rsi': np.random.uniform(30, 70, 500),
@@ -14,7 +14,7 @@ y_train = ((X_train['ema_diff'] > 0) & (X_train['rsi'] < 60) & (X_train['fvg'] =
 model = RandomForestClassifier()
 model.fit(X_train, y_train)
 
-def fetch_data(symbol, period="7d", interval="15m"):
+def fetch_data(symbol, period="7d", interval="1m"):
     try:
         df = yf.download(symbol, period=period, interval=interval, progress=False)
         return df if not df.empty else None
@@ -64,16 +64,16 @@ def evaluate_signal(df, symbol):
         return None
 
     direction = "Buy" if ema50 > ema200 else "Sell"
-    entry = float(latest['Close'])
-    sl = entry - 0.01 * entry if direction == "Buy" else entry + 0.01 * entry
-    tp = entry + 0.02 * entry if direction == "Buy" else entry - 0.02 * entry
+    entry = round(float(latest['Close']), 4)
+    sl = round(entry - 0.0050, 4) if direction == "Buy" else round(entry + 0.0050, 4)
+    tp = round(entry + 0.0100, 4) if direction == "Buy" else round(entry - 0.0100, 4)
     rr = round(abs(tp - entry) / abs(entry - sl), 2)
 
     return {
         "symbol": symbol,
-        "entry": round(entry, 2),
-        "sl": round(sl, 2),
-        "tp": round(tp, 2),
+        "entry": entry,
+        "sl": sl,
+        "tp": tp,
         "rr": rr,
         "timestamp": str(latest.name),
         "direction": direction,
@@ -89,6 +89,14 @@ def autonomous_trading_loop():
         if df is not None:
             trade = evaluate_signal(df, sym)
             if trade:
+                # Fetch live price to set initial pnl
+                try:
+                    current_price = yf.download(sym, period="1d", interval="1m").iloc[-1]['Close']
+                    pip_factor = 10 if "XAU" in sym or "DJI" in sym or "NDX" in sym else 10000
+                    diff = current_price - trade['entry']
+                    trade['pnl'] = round(diff * pip_factor if trade['direction'] == "Buy" else -diff * pip_factor, 1)
+                except:
+                    trade['pnl'] = 0.0
                 trades.append(trade)
     return trades
 
