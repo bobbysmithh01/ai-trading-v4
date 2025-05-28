@@ -1,3 +1,4 @@
+from strategy import autonomous_trading_loop, get_metrics, get_strategy_insights
 import streamlit as st
 import json
 from strategy import autonomous_trading_loop, get_metrics
@@ -75,3 +76,28 @@ if st.session_state.logged_in:
         feedback = st.text_area("Suggest an improvement or feature:")
         if st.button("Submit Feedback"):
             st.success("Feedback received — thank you!")
+
+-    menu = st.sidebar.radio("Menu", ["Live Trading", "Accounts", "Feedback & Improvements"])
++    # Top navigation
++    tabs = st.tabs(["Live Trading", "Accounts", "Feedback & Improvements", "Strategy Insights"])
++
++    with tabs[0]:
++        st.header("Live Trading")
++        # … your existing Live Trading code …
+
++    with tabs[1]:
++        st.header("Accounts")
++        # … Accounts code …
+
++    with tabs[2]:
++        st.header("Feedback & Improvements")
++        # … Feedback form code …
+
++    with tabs[3]:
++        st.header("Strategy Insights")
++        insights = get_strategy_insights()
++        if not insights:
++            st.info("No recent insights yet – bot hasn’t detected any confluences.")
++        else:
++            for msg in reversed(insights):
++                st.markdown(f"- {msg}")
