@@ -1,6 +1,6 @@
-
 streamlit
 pandas
 yfinance
 requests
+scikit-learn
 python-telegram-bot==13.15
