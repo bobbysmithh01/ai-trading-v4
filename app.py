@@ -3,7 +3,8 @@ import json
 import pandas as pd
 import threading
 import time
-from strategy import autonomous_trading_loop, get_metrics, autonomous_trading_insights
+from strategy import autonomous_trading_loop, get_metrics
+from mt5_live_trading_engine import initialize_mt5_accounts, shutdown_mt5, get_account_summary
 from telegram_bot import send_telegram_alert
 
 st.set_page_config(page_title="AI Trading", layout="wide")
@@ -14,18 +15,15 @@ if "bot_active" not in st.session_state:
     st.session_state.bot_active = False
 if "trades" not in st.session_state:
     st.session_state.trades = []
-if "bot_thread" not in st.session_state:
-    st.session_state.bot_thread = None
-
-# Auto-refreshing bot thread
+if "selected_accounts" not in st.session_state:
+    st.session_state.selected_accounts = []
 
 def bot_loop():
     while st.session_state.bot_active:
-        new_trades = autonomous_trading_loop()
-        if new_trades:
-            for trade in new_trades:
-                st.session_state.trades.append(trade)
-                send_telegram_alert(f"New Trade: {trade['symbol']} {trade['direction']} @ {trade['entry']} | SL: {trade['sl']} | TP: {trade['tp']}")
+        new_trades = autonomous_trading_loop(st.session_state.selected_accounts)
+        for trade in new_trades:
+            st.session_state.trades.append(trade)
+            send_telegram_alert(f"New Trade: {trade['symbol']} {trade['direction']} @ {trade['entry']} | SL: {trade['sl']} | TP: {trade['tp']}")
         time.sleep(60)
 
 if not st.session_state.logged_in:
@@ -46,61 +44,53 @@ if st.session_state.logged_in:
     with col2:
         if st.button("Logout"):
             st.session_state.logged_in = False
+            shutdown_mt5()
             st.experimental_rerun()
 
-    menu = st.radio("Menu", ["Live Trading", "Strategy Insights", "Accounts", "Feedback & Improvements"], horizontal=True)
+    menu = st.radio("Menu", ["Live Trading", "Accounts", "Feedback"], horizontal=True)
 
     if menu == "Live Trading":
         st.header("Live Trading")
         toggle = st.toggle("Activate AI Bot", value=st.session_state.bot_active)
-        if toggle and not st.session_state.bot_thread:
+        if toggle and not st.session_state.bot_active:
             st.session_state.bot_active = True
-            t = threading.Thread(target=bot_loop, daemon=True)
-            t.start()
-            st.session_state.bot_thread = t
+            threading.Thread(target=bot_loop, daemon=True).start()
         elif not toggle:
             st.session_state.bot_active = False
-            st.session_state.bot_thread = None
 
-        st.subheader("📊 Performance Stats")
+        st.subheader("📊 Stats")
         metrics = get_metrics(st.session_state.trades)
         st.metric("Total Trades", metrics['total'])
         st.metric("Win Rate", f"{metrics['win_rate']}%")
         st.metric("Net PnL (pips)", metrics['net_pnl'])
 
-        st.markdown("---")
-        st.subheader("📈 Active & Closed Trades")
+        st.subheader("📈 Trades")
         for trade in reversed(st.session_state.trades):
             with st.container():
                 st.markdown(f"**{trade['symbol']} - {trade['direction']}**")
-                st.markdown(f"**Time:** {trade['timestamp']}")
                 st.markdown(f"Entry: `{trade['entry']}` | SL: `{trade['sl']}` | TP: `{trade['tp']}` | R:R: `{trade['rr']}`")
-                st.markdown(f"Status: `{trade['status']}` | Current PnL: `{trade['pnl']}` pips")
+                st.markdown(f"Status: `{trade['status']}` | PnL: `{trade['pnl']}` pips")
                 st.markdown("---")
 
-        st.subheader("📊 Live Charts")
-        symbols = ["XAUUSD", "EURUSD", "GBPUSD", "DJI", "NDX"]
-        for sym in symbols:
-            st.markdown(f"#### {sym} Chart")
-            st.components.v1.html(f"""
-                <iframe src="https://s.tradingview.com/embed-widget/symbol-overview/?locale=en#%7B%22symbols%22%3A%5B%5B%22FOREXCOM%3A{sym}%22%5D%5D%2C%22width%22%3A%22100%25%22%2C%22height%22%3A"400"%7D" width="100%" height="400"></iframe>
-            """, height=400)
-
-    elif menu == "Strategy Insights":
-        st.header("Strategy Insights (Real-Time)")
-        insights = autonomous_trading_insights()
-        if insights:
-            df = pd.DataFrame(insights)
-            st.dataframe(df)
-        else:
-            st.info("No insights available yet. Activate the bot to start scanning.")
-
     elif menu == "Accounts":
-        st.header("Connected Accounts")
-        st.info("Feature coming soon for client management and MT5 linking.")
+        st.header("Accounts")
+        with open("accounts.json") as f:
+            all_accounts = json.load(f)
 
-    elif menu == "Feedback & Improvements":
-        st.header("Feedback Form")
-        feedback = st.text_area("Suggest an improvement or feature:")
+        selected = st.multiselect("Select accounts to trade from:", list(all_accounts.keys()), default=st.session_state.selected_accounts)
+        st.session_state.selected_accounts = selected
+
+        if st.button("Initialize Selected Accounts"):
+            initialize_mt5_accounts(st.session_state.selected_accounts)
+            st.success("Accounts connected.")
+
+        for acc in st.session_state.selected_accounts:
+            info = get_account_summary(acc)
+            st.markdown(f"**{acc}**")
+            st.json(info)
+
+    elif menu == "Feedback":
+        st.header("Feedback")
+        feedback = st.text_area("Suggest improvements:")
         if st.button("Submit Feedback"):
-            st.success("Feedback received — thank you!")
+            st.success("Feedback submitted. Thank you!")
