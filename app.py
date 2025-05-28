@@ -1,6 +1,7 @@
 import streamlit as st
 import json
-from strategy import autonomous_trading_loop, get_metrics
+import pandas as pd
+from strategy import autonomous_trading_loop, get_metrics, autonomous_trading_insights
 from telegram_bot import send_telegram_alert
 
 st.set_page_config(page_title="AI Trading", layout="wide")
@@ -32,13 +33,10 @@ if st.session_state.logged_in:
             st.session_state.logged_in = False
             st.experimental_rerun()
 
-    st.sidebar.title("AI Trading")
-    menu = st.sidebar.radio("Menu", ["Live Trading", "Strategy Insights", "Accounts", "Feedback & Improvements"])
-
-    st.title("AI Trading Dashboard")
-    st.markdown("---")
+    menu = st.radio("Menu", ["Live Trading", "Strategy Insights", "Accounts", "Feedback & Improvements"], horizontal=True)
 
     if menu == "Live Trading":
+        st.header("Live Trading")
         toggle = st.toggle("Activate AI Bot", value=st.session_state.bot_active)
         st.session_state.bot_active = toggle
 
@@ -57,7 +55,6 @@ if st.session_state.logged_in:
 
         st.markdown("---")
         st.subheader("📈 Active & Closed Trades")
-
         for trade in reversed(st.session_state.trades):
             with st.container():
                 st.markdown(f"**{trade['symbol']} - {trade['direction']}**")
@@ -66,12 +63,21 @@ if st.session_state.logged_in:
                 st.markdown(f"Status: `{trade['status']}` | Current PnL: `{trade['pnl']}` pips")
                 st.markdown("---")
 
+    elif menu == "Strategy Insights":
+        st.header("Strategy Insights (Real-Time)")
+        insights = autonomous_trading_insights()
+        if insights:
+            df = pd.DataFrame(insights)
+            st.dataframe(df)
+        else:
+            st.info("No insights available yet. Activate the bot to start scanning.")
+
     elif menu == "Accounts":
-        st.subheader("Connected Accounts")
+        st.header("Connected Accounts")
         st.info("Feature coming soon for client management and MT5 linking.")
 
     elif menu == "Feedback & Improvements":
-        st.subheader("Feedback Form")
+        st.header("Feedback Form")
         feedback = st.text_area("Suggest an improvement or feature:")
         if st.button("Submit Feedback"):
             st.success("Feedback received — thank you!")
