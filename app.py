@@ -1,4 +1,3 @@
-from strategy import autonomous_trading_loop, get_metrics, get_strategy_insights
 import streamlit as st
 import json
 from strategy import autonomous_trading_loop, get_metrics
