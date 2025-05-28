@@ -1,18 +1,16 @@
-
 import streamlit as st
 import json
-import pandas as pd
-import yfinance as yf
-from strategy import autonomous_trading_loop
+from strategy import autonomous_trading_loop, get_metrics
 from telegram_bot import send_telegram_alert
 
 st.set_page_config(page_title="AI Trading", layout="wide")
 
-# LOGIN
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "bot_active" not in st.session_state:
     st.session_state.bot_active = False
+if "trades" not in st.session_state:
+    st.session_state.trades = []
 
 if not st.session_state.logged_in:
     with st.form("Login"):
@@ -28,12 +26,12 @@ if not st.session_state.logged_in:
                 st.error("Invalid credentials")
 
 if st.session_state.logged_in:
-    # Top right corner: logout
     col1, col2 = st.columns([9, 1])
     with col2:
         if st.button("Logout"):
             st.session_state.logged_in = False
             st.experimental_rerun()
+
     st.sidebar.title("AI Trading")
     menu = st.sidebar.radio("Menu", ["Live Trading", "Accounts", "Feedback & Improvements"])
 
@@ -43,21 +41,37 @@ if st.session_state.logged_in:
     if menu == "Live Trading":
         toggle = st.toggle("Activate AI Bot", value=st.session_state.bot_active)
         st.session_state.bot_active = toggle
+
         if toggle:
-            st.success("Bot is running and scanning markets...")
-            trades = autonomous_trading_loop()
-            if trades:
-                st.write("Latest Trade Signal:")
-                st.json(trades[-1])
-        else:
-            st.warning("Bot is paused.")
+            new_trades = autonomous_trading_loop()
+            if new_trades:
+                for trade in new_trades:
+                    st.session_state.trades.append(trade)
+                    send_telegram_alert(f"New Trade: {trade['symbol']} {trade['direction']} @ {trade['entry']} | SL: {trade['sl']} | TP: {trade['tp']}")
+
+        st.subheader("📊 Performance Stats")
+        metrics = get_metrics(st.session_state.trades)
+        st.metric("Total Trades", metrics['total'])
+        st.metric("Win Rate", f"{metrics['win_rate']}%")
+        st.metric("Net PnL (pips)", metrics['net_pnl'])
+
+        st.markdown("---")
+        st.subheader("📈 Active & Closed Trades")
+
+        for trade in reversed(st.session_state.trades):
+            with st.container():
+                st.markdown(f"**{trade['symbol']} - {trade['direction']}**")
+                st.markdown(f"**Time:** {trade['timestamp']}")
+                st.markdown(f"Entry: `{trade['entry']}` | SL: `{trade['sl']}` | TP: `{trade['tp']}` | R:R: `{trade['rr']}`")
+                st.markdown(f"Status: `{trade['status']}` | Current PnL: `{trade['pnl']}` pips")
+                st.markdown("---")
 
     elif menu == "Accounts":
         st.subheader("Connected Accounts")
-        st.write("This section will let you manage trading accounts in the future.")
+        st.info("Feature coming soon for client management and MT5 linking.")
 
     elif menu == "Feedback & Improvements":
         st.subheader("Feedback Form")
-        feedback = st.text_area("Suggest a feature, improvement, or report an issue:")
+        feedback = st.text_area("Suggest an improvement or feature:")
         if st.button("Submit Feedback"):
-            st.success("Thank you! Your feedback has been recorded.")
+            st.success("Feedback received — thank you!")
