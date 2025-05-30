@@ -45,7 +45,7 @@ def evaluate_trade(symbol):
     df = detect_fvg(df)
     latest = df.iloc[-1]
 
-    ema_signal = latest['EMA50'] > latest['EMA200']
+    ema_signal = pd.notna(latest['EMA50']) and pd.notna(latest['EMA200']) and latest['EMA50'] > latest['EMA200']
     rsi_signal = latest['RSI'] < 60 if ema_signal else latest['RSI'] > 40
     fvg_signal = df['FVG'].iloc[-1]
     fib_level = calculate_fib_retracement(df)
