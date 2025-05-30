@@ -108,7 +108,9 @@ def get_strategy_insights():
 
         insight_text = []
 
-        if pd.notna(latest['EMA50']) and pd.notna(latest['EMA200']) and latest['EMA50'] > latest['EMA200']:
+        ema50 = latest.get('EMA50')
+ema200 = latest.get('EMA200')
+if isinstance(ema50, (float, int)) and isinstance(ema200, (float, int)) and ema50 > ema200:
             insight_text.append("✅ EMA50 is above EMA200 → Bullish signal")
         else:
             insight_text.append("🔻 EMA50 is below EMA200 → Bearish signal")
