@@ -94,3 +94,52 @@ def get_metrics(trades):
     win_rate = round((len(wins) / len(closed)) * 100, 2) if closed else 0
     return {"total": total, "win_rate": win_rate, "net_pnl": round(pnl, 1)}
 
+def get_strategy_insights():
+    symbols = ["EURUSD=X", "XAUUSD=X", "GBPUSD=X", "^DJI", "^NDX"]
+    insights = []
+
+    for sym in symbols:
+        df = fetch_data(sym)
+        if df is None or len(df) < 100:
+            continue
+
+        df = calculate_indicators(df)
+        df = detect_fvg(df)
+        latest = df.iloc[-1]
+
+        insight_text = []
+
+        # EMA analysis
+        if latest['EMA50'] > latest['EMA200']:
+            insight_text.append("✅ EMA50 is above EMA200 → Bullish signal")
+        else:
+            insight_text.append("🔻 EMA50 is below EMA200 → Bearish signal")
+
+        # RSI
+        rsi = round(latest['RSI'], 2)
+        insight_text.append(f"RSI: {rsi}")
+        if rsi < 30:
+            insight_text.append("📉 RSI is below 30 → Oversold")
+        elif rsi > 70:
+            insight_text.append("📈 RSI is above 70 → Overbought")
+
+        # FVG
+        if df['FVG'].iloc[-1]:
+            insight_text.append("📍 Fair Value Gap detected")
+
+        # Fib retracement
+        fib = calculate_fib_retracement(df)
+        insight_text.append(f"🔢 Fib Retracement Level: {fib}")
+
+        # Supply/Demand
+        if in_supply_zone(latest, df):
+            insight_text.append("🔴 Price is near recent Supply Zone")
+        if in_demand_zone(latest, df):
+            insight_text.append("🟢 Price is near recent Demand Zone")
+
+        insights.append({
+            "symbol": sym,
+            "analysis": "\n".join(insight_text)
+        })
+
+    return insights
