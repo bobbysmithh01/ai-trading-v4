@@ -47,7 +47,7 @@ def evaluate_trade(symbol):
 
     ema_signal = pd.notna(latest['EMA50']) and pd.notna(latest['EMA200']) and latest['EMA50'] > latest['EMA200']
     rsi_signal = latest['RSI'] < 60 if ema_signal else latest['RSI'] > 40
-    fvg_signal = df['FVG'].iloc[-1]
+    fvg_signal = df['FVG'].iloc[-1] if 'FVG' in df.columns else False
     fib_level = calculate_fib_retracement(df)
     in_demand = in_demand_zone(latest, df)
     in_supply = in_supply_zone(latest, df)
@@ -113,14 +113,15 @@ def get_strategy_insights():
         else:
             insight_text.append("🔻 EMA50 is below EMA200 → Bearish signal")
 
-        rsi = round(latest['RSI'], 2)
-        insight_text.append(f"RSI: {rsi}")
-        if rsi < 30:
-            insight_text.append("📉 RSI is below 30 → Oversold")
-        elif rsi > 70:
-            insight_text.append("📈 RSI is above 70 → Overbought")
+        rsi = round(latest['RSI'], 2) if pd.notna(latest['RSI']) else None
+        if rsi:
+            insight_text.append(f"RSI: {rsi}")
+            if rsi < 30:
+                insight_text.append("📉 RSI is below 30 → Oversold")
+            elif rsi > 70:
+                insight_text.append("📈 RSI is above 70 → Overbought")
 
-        if df['FVG'].iloc[-1]:
+        if 'FVG' in df.columns and df['FVG'].iloc[-1]:
             insight_text.append("📍 Fair Value Gap detected")
 
         fib = calculate_fib_retracement(df)
@@ -137,4 +138,5 @@ def get_strategy_insights():
         })
 
     return insights
+
 
