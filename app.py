@@ -4,7 +4,6 @@ import pandas as pd
 import threading
 import time
 from strategy import autonomous_trading_loop, get_metrics
-from mt5_live_trading_engine import initialize_mt5_accounts, shutdown_mt5, get_account_summary
 from telegram_bot import send_telegram_alert
 
 st.set_page_config(page_title="AI Trading", layout="wide")
@@ -15,15 +14,13 @@ if "bot_active" not in st.session_state:
     st.session_state.bot_active = False
 if "trades" not in st.session_state:
     st.session_state.trades = []
-if "selected_accounts" not in st.session_state:
-    st.session_state.selected_accounts = []
 
 def bot_loop():
     while st.session_state.bot_active:
-        new_trades = autonomous_trading_loop(st.session_state.selected_accounts)
+        new_trades = autonomous_trading_loop()
         for trade in new_trades:
             st.session_state.trades.append(trade)
-            send_telegram_alert(f"New Trade: {trade['symbol']} {trade['direction']} @ {trade['entry']} | SL: {trade['sl']} | TP: {trade['tp']}")
+            send_telegram_alert(f"Signal: {trade['symbol']} {trade['direction']} @ {trade['entry']} | SL: {trade['sl']} | TP: {trade['tp']}")
         time.sleep(60)
 
 if not st.session_state.logged_in:
@@ -44,10 +41,9 @@ if st.session_state.logged_in:
     with col2:
         if st.button("Logout"):
             st.session_state.logged_in = False
-            shutdown_mt5()
             st.experimental_rerun()
 
-    menu = st.radio("Menu", ["Live Trading", "Accounts", "Feedback"], horizontal=True)
+    menu = st.radio("Menu", ["Live Trading", "Feedback"], horizontal=True)
 
     if menu == "Live Trading":
         st.header("Live Trading")
@@ -58,13 +54,13 @@ if st.session_state.logged_in:
         elif not toggle:
             st.session_state.bot_active = False
 
-        st.subheader("📊 Stats")
+        st.subheader("📊 Performance")
         metrics = get_metrics(st.session_state.trades)
         st.metric("Total Trades", metrics['total'])
         st.metric("Win Rate", f"{metrics['win_rate']}%")
         st.metric("Net PnL (pips)", metrics['net_pnl'])
 
-        st.subheader("📈 Trades")
+        st.subheader("📈 Trade Log")
         for trade in reversed(st.session_state.trades):
             with st.container():
                 st.markdown(f"**{trade['symbol']} - {trade['direction']}**")
@@ -72,25 +68,8 @@ if st.session_state.logged_in:
                 st.markdown(f"Status: `{trade['status']}` | PnL: `{trade['pnl']}` pips")
                 st.markdown("---")
 
-    elif menu == "Accounts":
-        st.header("Accounts")
-        with open("accounts.json") as f:
-            all_accounts = json.load(f)
-
-        selected = st.multiselect("Select accounts to trade from:", list(all_accounts.keys()), default=st.session_state.selected_accounts)
-        st.session_state.selected_accounts = selected
-
-        if st.button("Initialize Selected Accounts"):
-            initialize_mt5_accounts(st.session_state.selected_accounts)
-            st.success("Accounts connected.")
-
-        for acc in st.session_state.selected_accounts:
-            info = get_account_summary(acc)
-            st.markdown(f"**{acc}**")
-            st.json(info)
-
     elif menu == "Feedback":
         st.header("Feedback")
         feedback = st.text_area("Suggest improvements:")
         if st.button("Submit Feedback"):
-            st.success("Feedback submitted. Thank you!")
+            st.success("Thanks for your feedback!")
