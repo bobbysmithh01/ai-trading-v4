@@ -1,6 +1,6 @@
 streamlit
-MetaTrader5
+yfinance
 pandas
 numpy
-scikit-learn
+requests
 
