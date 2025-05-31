@@ -136,10 +136,18 @@ def get_strategy_insights():
         fib = calculate_fib_retracement(df)
         insight_text.append(f"🔢 Fib Retracement Level: {fib}")
 
-        if in_supply_zone(latest, df):
-            insight_text.append("🔴 Price is near recent Supply Zone")
-        if in_demand_zone(latest, df):
-            insight_text.append("🟢 Price is near recent Demand Zone")
+        def in_supply_zone(latest, df):
+    try:
+        recent_high = df['High'].rolling(10).max().iloc[-1]
+        return bool(latest['Close'] > float(recent_high * 0.98))
+    except:
+        return False
+        def in_demand_zone(latest, df):
+    try:
+        recent_low = df['Low'].rolling(10).min().iloc[-1]
+        return bool(latest['Close'] < float(recent_low * 1.02))
+    except:
+        return False
 
         insights.append({
             "symbol": sym,
@@ -147,4 +155,5 @@ def get_strategy_insights():
         })
 
     return insights
+
 
