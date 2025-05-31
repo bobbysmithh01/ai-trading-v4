@@ -2,7 +2,7 @@
 import requests
 
 TELEGRAM_BOT_TOKEN = "7710715037:AAGNf0JKGeQi37HzySiSOM8tsZr_unnXoXg"
-TELEGRAM_CHAT_ID = "bobbysmithh01"
+TELEGRAM_CHAT_ID = "6835207640"
 
 def send_telegram_alert(message):
     try:
