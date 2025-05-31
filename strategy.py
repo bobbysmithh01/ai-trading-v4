@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 import random
+from telegram_bot import send_telegram_alert
 
 def fetch_data(symbol, period="5d", interval="1m"):
     try:
@@ -77,9 +78,7 @@ def evaluate_trade(symbol):
     rr = round(abs(tp - entry) / abs(entry - sl), 2)
     pnl = round(random.uniform(-30, 80), 1)
 
-    from telegram_bot import send_telegram_alert
-
-send_telegram_alert(f"📈 {symbol} {direction} signal\nEntry: {entry} | SL: {sl} | TP: {tp} | R:R: {rr}")
+    send_telegram_alert(f"📈 {symbol} {direction} signal\nEntry: {entry} | SL: {sl} | TP: {tp} | R:R: {rr}")
 
     return {
         "symbol": symbol,
@@ -159,5 +158,3 @@ def get_strategy_insights():
         })
 
     return insights
-
-
