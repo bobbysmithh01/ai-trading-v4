@@ -77,6 +77,10 @@ def evaluate_trade(symbol):
     rr = round(abs(tp - entry) / abs(entry - sl), 2)
     pnl = round(random.uniform(-30, 80), 1)
 
+    from telegram_bot import send_telegram_alert
+
+send_telegram_alert(f"📈 {symbol} {direction} signal\nEntry: {entry} | SL: {sl} | TP: {tp} | R:R: {rr}")
+
     return {
         "symbol": symbol,
         "entry": entry,
