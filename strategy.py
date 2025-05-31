@@ -45,8 +45,13 @@ def evaluate_trade(symbol):
     df = detect_fvg(df)
     latest = df.iloc[-1]
 
-    ema_signal = pd.notna(latest['EMA50']) and pd.notna(latest['EMA200']) and latest['EMA50'] > latest['EMA200']
-    rsi_signal = latest['RSI'] < 60 if ema_signal else latest['RSI'] > 40
+    ema50 = latest.get('EMA50')
+    ema200 = latest.get('EMA200')
+    ema_signal = isinstance(ema50, (float, int)) and isinstance(ema200, (float, int)) and ema50 > ema200
+
+    rsi_val = latest.get('RSI')
+    rsi_signal = rsi_val < 60 if ema_signal else rsi_val > 40 if isinstance(rsi_val, (float, int)) else False
+
     fvg_signal = df['FVG'].iloc[-1] if 'FVG' in df.columns else False
     fib_level = calculate_fib_retracement(df)
     in_demand = in_demand_zone(latest, df)
@@ -109,14 +114,16 @@ def get_strategy_insights():
         insight_text = []
 
         ema50 = latest.get('EMA50')
-ema200 = latest.get('EMA200')
-if isinstance(ema50, (float, int)) and isinstance(ema200, (float, int)) and ema50 > ema200:
-            insight_text.append("✅ EMA50 is above EMA200 → Bullish signal")
-        else:
-            insight_text.append("🔻 EMA50 is below EMA200 → Bearish signal")
+        ema200 = latest.get('EMA200')
+        if isinstance(ema50, (float, int)) and isinstance(ema200, (float, int)):
+            if ema50 > ema200:
+                insight_text.append("✅ EMA50 is above EMA200 → Bullish signal")
+            else:
+                insight_text.append("🔻 EMA50 is below EMA200 → Bearish signal")
 
-        rsi = round(latest['RSI'], 2) if pd.notna(latest['RSI']) else None
-        if rsi:
+        rsi = latest.get('RSI')
+        if isinstance(rsi, (float, int)):
+            rsi = round(rsi, 2)
             insight_text.append(f"RSI: {rsi}")
             if rsi < 30:
                 insight_text.append("📉 RSI is below 30 → Oversold")
@@ -140,5 +147,4 @@ if isinstance(ema50, (float, int)) and isinstance(ema200, (float, int)) and ema5
         })
 
     return insights
-
 
