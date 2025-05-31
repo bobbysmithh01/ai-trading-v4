@@ -68,7 +68,7 @@ def evaluate_trade(symbol):
 
     confidence = sum([ema_signal, rsi_signal, fvg_signal, in_demand or in_supply])
 
-    if confidence < 1:
+    if confidence < 0:
         return None
 
     direction = "Buy" if ema_signal and not in_supply else "Sell"
